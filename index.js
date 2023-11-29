@@ -15,44 +15,35 @@ const client = new MongoClient(uri, {
   useUnifiedTopology: true,
 });
 
-const port = process.env.PORT || 8000;
+const port = process.env.PORT || 3000;
 
 
 
 async function run() {
   try {
     await client.connect();
-    const database = client.db("nature_nexus");
-    const bookCollection = database.collection("books");
+    const database = client.db("books");
+    const bookCollection = database.collection("book");
 
 
 
-    app.post("/books",async(req,res)=>{
+    app.post("/books", async (req, res) => {
       const { name, image, publisher, publicationYear, genre, authorName } = req.body;
-const book = { name, image, publisher,   publicationYear: parseInt(publicationYear), // Convert to number
- genre, authorName };
+      const book = {
+        name,
+        image, publisher, publicationYear: parseInt(publicationYear), // Convert to number
+        genre, authorName
+      };
 
-try {
-  const result = await bookCollection.insertOne(book);
-  res.json({ message: "Book added successfully", insertedId: result.insertedId });
-} catch (error) {
-  console.error("Error adding book:", error);
-  res.status(500).json({ message: "An error occurred while adding the book" });
-}
+      try {
+        const result = await bookCollection.insertOne(book);
+        res.json({ message: "Book added successfully", insertedId: result.insertedId });
+      } catch (error) {
+        console.error("Error adding book:", error);
+        res.status(500).json({ message: "An error occurred while adding the book" });
+      }
 
     })
-    // //add  all books
-    // app.post("/books", async (req, res) => {
-    //   const { name,  image,publisher, publicationYear,genre,authorName} = req.body;
-    //   const book = { name,  image,publisher, publicationYear,genre,authorName};
-    //   try {
-    //     const result = await bookCollection.insertOne(book);
-    //     res.json({ message: "book added successfully" });
-    //     res.json(result)
-    //   } catch (error) {
-    //     res.status(500).json({ message: "An error occurred while adding the book" });
-    //   }
-    // });
 
     // get books
 
@@ -63,45 +54,47 @@ try {
       res.send(books);
     })
 
-  // Update a book by ID
-  app.put("/books/:id", async (req, res) => {
-    const { id } = req.params;
-    const { name,  image,publisher, publicationYear,genre,authorName} = req.body;
-    try {
-      const result = await bookCollection.updateOne(
-        { _id: ObjectId(id) },
-        { $set: { name,  image,publisher, publicationYear,genre,authorName } }
-      );
-      res.json({ message: "Book updated successfully" });
-    } catch (error) {
-      res.status(500).json({ message: "An error occurred while updating the book" });
-    }
-  });
-
-  // get a book by ID
-app.get("/books/:id", async (req, res) => {
-    const { id } = req.params;
-    try {
-      const book = await bookCollection.findOne({ _id: ObjectId(id) });
-      if (!book) {
-        return res.status(404).json({ message: "Book not found" });
+    app.put("/books/:id", async (req, res) => {
+      const id = req.params.id;
+      const { name, image, publisher, publicationYear, genre, authorName, status } = req.body;
+    
+      try {
+        const result = await bookCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { name, image, publisher, publicationYear, genre, authorName, status, } }
+        );
+    
+        if (result.modifiedCount > 0) {
+          res.json({ message: "Book updated successfully" });
+        } else {
+          res.status(404).json({ message: "Book not found" });
+        }
+      } catch (error) {
+        console.error("Error updating book:", error);
+        res.status(500).json({ message: "An error occurred while updating the book" });
       }
-      res.json(book);
-    } catch (error) {
-      res.status(500).json({ message: "An error occurred while fetching the book" });
-    }
-  });
-  
-  // Delete a book by ID
-  app.delete("/books/:id", async (req, res) => {
-    const { id } = req.params;
-    try {
-      const result = await bookCollection.deleteOne({ _id: ObjectId(id) });
-      res.json({ message: "Book deleted successfully" });
-    } catch (error) {
-      res.status(500).json({ message: "An error occurred while deleting the book" });
-    }
-  });
+    });
+    
+    // get a book by ID
+    app.get("/books/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log("Received ID:", id);
+      const book = { _id: new ObjectId(id) };
+      const result = await bookCollection.findOne(book)
+      res.json(result);
+
+    });
+
+
+    // Delete a book by ID
+    app.delete("/books/:id", async (req, res) => {
+
+      const id = req.params.id;
+      const book = { _id: new ObjectId(id) };
+      const result = await bookCollection.deleteOne(book)
+      res.json(result);
+ 
+    });
 
 
     app.listen(port, () => {
